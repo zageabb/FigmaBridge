@@ -45,3 +45,10 @@ Read the latest upstream source before every mapping change. Do not duplicate th
 - Added `POST /api/inspect` report with screen inventory and warnings, plus **Inspect first** UI action. No Figma JSON retained.
 - Added tests in `tests/test_conversion.py` covering navigation, unmapped destinations, layout and inspect endpoint.
 - **Verification:** source committed in PR #1; pytest has not been executed independently in this environment. GitHub Actions unavailable due to billing. Consequently the feature branch is not marked tested, and merge remains pending independent evidence.
+
+## 2026-11-12 Phase 3 continuation (PR #2 candidate)
+- Implemented source-derived Figma solid-fill colour tokens in `themes.light.tokens`; editable nodes reference matching tokens.
+- Preserved Figma reusable-component catalogue entries with `metadata_only: true` instead of fabricating definitions; source IDs and descriptions retained.
+- Added regression tests for token reuse, catalogue metadata and no artificial dark-theme creation.
+- The converter still cannot package graphic assets or reconstruct full reusable component definitions; actual visual parity is unverified.
+- Verification status: code and tests committed, **pytest not executed**; Actions billing exception remains. New work must be treated as unverified until an independent test runner can execute it.

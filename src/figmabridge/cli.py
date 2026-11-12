@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from .core import convert, pack, validate, MAX_BYTES
 from .figma_api import fetch_figma_file
+from .assets import attach_local_assets
 
 
 def main():
@@ -17,6 +18,7 @@ def main():
     for cmd in (offline, online):
         cmd.add_argument("-o", "--output", type=Path, required=True)
         cmd.add_argument("--name")
+        cmd.add_argument("--assets-dir", type=Path, help="Local raster exports named by Figma node ID (e.g. 12_34.png)")
     check = sub.add_parser("validate")
     check.add_argument("input", type=Path)
     args = parser.parse_args()
@@ -32,7 +34,11 @@ def main():
     else:
         figma = fetch_figma_file(args.file_key, os.environ.get("FIGMA_TOKEN"))
     manifest, application, warnings = convert(figma, args.name)
-    args.output.write_bytes(pack(manifest, application))
+    asset_files = {}
+    if args.assets_dir:
+        asset_files, asset_warnings = attach_local_assets(application, args.assets_dir)
+        warnings.extend(asset_warnings)
+    args.output.write_bytes(pack(manifest, application, asset_files))
     print(json.dumps({"output": str(args.output), "screens": len(application["screens"]),
                       "warnings": warnings}, indent=2))
 

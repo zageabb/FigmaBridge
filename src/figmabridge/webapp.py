@@ -3,7 +3,7 @@ from io import BytesIO
 import json
 import os
 
-from flask import Flask, flash, redirect, render_template_string, request, send_file, url_for
+from flask import Flask, flash, redirect, render_template_string, request, send_file, url_for, jsonify
 from .core import convert, pack, MAX_BYTES
 
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -51,6 +51,27 @@ def create_app():
                              as_attachment=True, download_name="application.scraft")
         response.headers["X-Import-Warnings"] = str(len(warnings))
         return response
+
+    @app.post("/api/inspect")
+    def inspect_json():
+        """Return a reviewable import report without producing an archive."""
+        attachment = request.files.get("file")
+        if not attachment or not attachment.filename.lower().endswith(".json"):
+            return jsonify({"error": "Select a JSON export"}), 400
+        try:
+            figma = json.loads(attachment.stream.read(MAX_BYTES + 1))
+            _, application, warnings = convert(figma, request.form.get("name") or None)
+        except (ValueError, TypeError, UnicodeError, json.JSONDecodeError) as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({
+            "name": application["name"],
+            "screens": [{"id": screen["id"], "name": screen["name"],
+                         "viewport": screen["viewport"], "nodes": len(screen["nodes"])}
+                        for screen in application["screens"]],
+            "warnings": warnings,
+            "warning_count": len(warnings),
+            "format_version": "1.0.0",
+        })
 
     @app.get("/health")
     def health():

@@ -52,3 +52,11 @@ Read the latest upstream source before every mapping change. Do not duplicate th
 - Added regression tests for token reuse, catalogue metadata and no artificial dark-theme creation.
 - The converter still cannot package graphic assets or reconstruct full reusable component definitions; actual visual parity is unverified.
 - Verification status: code and tests committed, **pytest not executed**; Actions billing exception remains. New work must be treated as unverified until an independent test runner can execute it.
+
+## 2026-11-12 Phase 3 asset packaging (PR #3 candidate)
+- PR #2 merged into main under the user-approved GitHub Actions billing exception (merge `6e1372c`).
+- Added opt-in offline image packaging with CLI `--assets-dir`. Local image filenames correspond to Figma node IDs (e.g. `12:34` -> `12_34.png`). Asset references stay inside the .scraft ZIP and are stored in `application.assets`.
+- Validator now checks ZIP entry allowlisting, duplicate entries, expansion limits, image signatures, media types and optional SHA-256 checksums; undeclared and missing assets are rejected.
+- Added `tests/test_assets.py` covering packaged assets, missing exports, signature mismatches, undeclared entries and ZIP traversal.
+- **Not yet implemented:** automatic Figma asset download/export, full decoded image safety checks, full SCRAFT-1 conformance and visual parity checks.
+- **Verification:** code committed but pytest cannot run from this connector environment; GitHub Actions unavailable due to billing. PR is unverified and should receive independent tests before production deployment. No claim that acceptance is met.

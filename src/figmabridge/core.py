@@ -12,6 +12,7 @@ import uuid
 import hashlib
 from .assets import media_info
 from .themes import apply_theme
+from .responsive import annotate_responsive
 
 MAX_BYTES = 25 * 1024 * 1024
 MAX_SCREENS = 100
@@ -199,6 +200,7 @@ def convert(figma, name=None):
     if application["components"]:
         warnings.append("Component catalogue imported as metadata only; editable definitions need review")
     warnings.extend(apply_theme(figma, application))
+    warnings.extend(annotate_responsive(figma, application))
     return manifest, application, warnings
 
 

@@ -9,6 +9,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 import json
 import re
 import uuid
+from .themes import apply_theme
 
 MAX_BYTES = 25 * 1024 * 1024
 MAX_SCREENS = 100
@@ -181,8 +182,21 @@ def convert(figma, name=None):
                    "screen_order": [s["id"] for s in screens], "screens": screens,
                    "components": [], "themes": {"light": {"tokens": {}}},
                    "datasets": [], "assets": []}
-    if figma.get("components"):
-        warnings.append("Reusable Figma component definitions are not yet mapped")
+    # Preserve reusable component catalogue metadata without fabricating
+    # editable component definitions that Figma has not supplied.
+    for figma_id, item in (figma.get("components") or {}).items():
+        if not isinstance(item, dict):
+            continue
+        application["components"].append({
+            "id": "figma-" + slug(figma_id),
+            "name": item.get("name") or figma_id,
+            "source": {"provider": "figma", "key": figma_id},
+            "description": item.get("description", ""),
+            "metadata_only": True,
+        })
+    if application["components"]:
+        warnings.append("Component catalogue imported as metadata only; editable definitions need review")
+    warnings.extend(apply_theme(figma, application))
     return manifest, application, warnings
 
 

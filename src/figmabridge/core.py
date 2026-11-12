@@ -209,11 +209,11 @@ def pack(manifest, application, assets=None):
     with ZipFile(data, "w", ZIP_DEFLATED) as archive:
         archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
         archive.writestr("application.json", json.dumps(application, ensure_ascii=False, indent=2))
-        for path, data in sorted(assets.items()):
+        for path, asset_bytes in sorted(assets.items()):
             if not re.fullmatch(r"assets/[A-Za-z0-9_-]+\.(?:png|jpg|jpeg|webp|gif)", path):
                 raise ValueError("Unsafe asset path")
-            media_info(path, data)
-            archive.writestr(path, data)
+            media_info(path, asset_bytes)
+            archive.writestr(path, asset_bytes)
     result = data.getvalue()
     validate(result)
     return result

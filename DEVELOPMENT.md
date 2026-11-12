@@ -10,6 +10,7 @@ Read the latest upstream source before every mapping change. Do not duplicate th
 3. Advanced conversion — **partial**: safe click navigation and Auto Layout settings implemented; reusable component definitions, assets, themes, responsive views and visual diff reports still planned.
 4. Figma connectivity — **partial**: opt-in REST file API retrieval via `FIGMA_TOKEN`, strict file key/host, size cap and timeouts; caching, API retry/rate-limit handling and editor plugin still planned.
 5. ScreenCraft/GitHub integration — **planned**: compatibility tests, GitHub branch/PR sync, safe reconciliation and human approval for changes.
+6. Bidirectional editable Figma export — **planned**: .scraft-to-Figma plugin write bridge, ID-safe updates and reviewable round-trip reconciliation without MCP.
 
 ## Phase acceptance
 - P1: green unit tests, malformed archives rejected, valid baseline SCRAFT file.
@@ -60,3 +61,27 @@ Read the latest upstream source before every mapping change. Do not duplicate th
 - Added `tests/test_assets.py` covering packaged assets, missing exports, signature mismatches, undeclared entries and ZIP traversal.
 - **Not yet implemented:** automatic Figma asset download/export, full decoded image safety checks, full SCRAFT-1 conformance and visual parity checks.
 - **Verification:** code committed but pytest cannot run from this connector environment; GitHub Actions unavailable due to billing. PR is unverified and should receive independent tests before production deployment. No claim that acceptance is met.
+
+## Phase 6 — Bidirectional editable Figma export (planned, 2026-11-12)
+
+**Goal:** Write editable ScreenCraft/.scraft designs back into native Figma design files without relying on MCP, while retaining the existing read/import pathway. This is a *future independent phase*; do not interrupt Phases 1–5.
+
+**Architecture:** Keep Python/Flask/CLI as the conversion, inspection and synchronisation service. The Figma REST API supports reading file designs but must **not** be assumed to support creating or editing Figma document nodes. Implement writes through a small Figma Plugin API companion (JavaScript/TypeScript) running in Figma with the user's permission. Export a validated, versioned intermediate design payload from FigmaBridge and let the plugin create/update Figma nodes. Support local file handoff first; optionally offer a secure explicitly authorised bridge later. The plugin must be invoked within Figma; do not claim a REST request can launch it unattended.
+
+**Scope and requirements:**
+- Export .scraft screens as editable Figma frames and child objects: text, shapes, buttons, inputs, cards, containers, grid/table-like structures, images, component representations, basic theme tokens, layout constraints and Auto Layout where representable.
+- Retain stable .scraft IDs and Figma node IDs via namespaced plugin metadata / mapping manifests; distinguish native Figma editable properties from ScreenCraft-only interaction semantics. Preserve non-Figma metadata for round-trip where practical, and report lossy conversions.
+- Provide both **Create new design** and **Update existing mapped design** modes. A new design may be created within a document the user opens; do not assume API permission to create/manage Figma files remotely. Avoid accidentally duplicating frames or replacing unmapped native objects.
+- Reimport the resulting Figma document through the current authorised REST/plugin JSON read path and compare changes before applying them to .scraft. Present add/change/delete conflicts and manual Figma edits for explicit review and approval; never silently overwrite.
+- Figma component styles, typography, constraints and token/variable mapping need capability checks against the current Plugin API, account permissions and plan entitlements. Mark unsupported items with useful warnings instead of silently flattening them.
+- Protect credentials and design data: no token in .scraft/plugin manifests/logs; validate input sizes and asset types, restrict remote calls, require user consent before modifying files, and never execute arbitrary scripts from a design.
+- Keep an offline export package/CLI pathway and avoid a mandatory Figma/MCP connection for ordinary ScreenCraft editing.
+
+**Acceptance criteria:**
+1. Convert a multi-screen .scraft file into an export payload and use the plugin to create editable, recognisable Figma layers (not a flattened screenshot).
+2. Re-run export on a mapped Figma document without unintended duplicates; detect changed/deleted targets and require approval for destructive updates.
+3. Demonstrate round-trip Figma → .scraft → Figma → .scraft with stable IDs, supported layout/property fidelity and explicit mismatch report.
+4. Test nested objects, reusable components, images, tables/grids, desktop/mobile frames, text and colour tokens; document unsupported design/interaction properties.
+5. Run independent Python and plugin tests plus actual Figma desktop/browser manual verification. Record evidence and unresolved API limitations; GitHub Actions remains subject to the existing billing exception.
+
+**Status:** PLANNED — design requirement only. No Figma write implementation or live testing is claimed.

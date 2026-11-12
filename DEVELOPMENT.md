@@ -1,34 +1,34 @@
 # FigmaBridge development register
 
-Updated: 2026-11-12. Standalone importer runs alongside ScreenCraft development.
-Authoritative .scraft standard: [Application-Standard SCRAFT-1](https://github.com/zageabb/Application-Standard/blob/main/standards/SCRAFT_FILE_FORMAT_v1.md).
-Do not fork/copy the schema into this repository; record the format version and source commit when validating.
+Updated: 2026-11-12. Separate development from ScreenCraft.
+**Canonical SCRAFT spec:** [Application-Standard](https://github.com/zageabb/Application-Standard/blob/main/standards/SCRAFT_FILE_FORMAT_v1.md) version 1.0.0, observed source blob `edd51749b6ea9cc82963d494cc79c13cde9fe052`.
+Read the latest upstream source before every mapping change. Do not duplicate the normative specification.
 
-## Status
-- Phase 1 Foundation: IMPLEMENTED IN FEATURE BRANCH, PENDING TEST/CI REVIEW. Flask app, CLI, basic SCRAFT-1 writer/validator, pytest.
-- Phase 2 Basic extraction: PARTIAL. Figma REST JSON frames/text/containers/geometry; inferred controls flagged; graphical assets remain placeholders.
-- Phase 3 Advanced design conversion: PLANNED. Real assets, components, themes, interactions, responsive reconciliation, visual diffs.
-- Phase 4 Figma connectivity: PLANNED. API, caching, OAuth/token safety and optional Figma plugin.
-- Phase 5 ScreenCraft integration: PLANNED. Package/REST contract, GitHub PR sync and round-trip tests.
+## Phase status
+1. Foundation — **code in PR #1, pending tests/CI**: Flask app, CLI, ZIP writer, structural validator, pytest, CI.
+2. Design extraction — **partial**: top-level Figma frames, basic nodes, solid fills, text, geometry, inferred controls and warnings. Actual asset packaging and editor acceptance pending.
+3. Advanced conversion — **planned**: component instances/variants, assets, themes, layout constraints, responsive views, supported prototype links, import diff reports.
+4. Figma connectivity — **partial**: opt-in REST file API retrieval via `FIGMA_TOKEN`, strict file key/host, size cap and timeouts; caching, API retry/rate-limit handling and editor plugin still planned.
+5. ScreenCraft/GitHub integration — **planned**: compatibility tests, GitHub branch/PR sync, safe reconciliation and human approval for changes.
 
-## Acceptance gates
-1. Unit tests and CI green; malformed archives and unsupported actions rejected.
-2. Figma multi-screen JSON imports as editable .scraft and warnings are visible.
-3. Two themes, bundled image, mock table, navigation, responsive views and preserved IDs round-trip in ScreenCraft.
-4. Authenticated Figma imports meet rate limits and never persist credentials.
-5. ScreenCraft end-to-end import and GitHub review workflow proven.
+## Phase acceptance
+- P1: green unit tests, malformed archives rejected, valid baseline SCRAFT file.
+- P2: genuine multi-screen Figma JSON produces editable ScreenCraft nodes; unconverted elements visible.
+- P3: two themes, packaged image, table, navigation, mobile layout, reusable components and stable IDs survive round trip.
+- P4: authorised API import and offline fallback; no secret leakage or unexpected external requests.
+- P5: ScreenCraft imports and reopens generated .scraft, with changes proposed through reviewable PRs.
 
 ## Decisions
-- Flask with reusable Python converter package; CLI for offline operation.
-- Free Figma JSON first; live API optional and no dependency for offline tests.
-- Maintain source node IDs under node props for traceability.
-- AI inference must remain reviewable; unsupported Figma controls do not acquire fabricated behaviour.
-- No production SQL or executable actions inside .scraft.
-- Keep tests and docs current; do not merge until CI is verified green.
-- Reverse-proxy route /apps/figmabridge/ must be verified separately before deployment claims.
+- Python package is reusable; Flask is only a standalone frontend, CLI remains offline capable.
+- The .scraft contract is authored in Application-Standard; importer must not change the shared format unilaterally.
+- `figma_node_id` and inferred control warnings preserve source provenance.
+- Never invent working business actions; no arbitrary code or production data in .scraft.
+- Do not merge until CI is verified green. Tests, documentation and manual updates required with code changes.
+- Prefix hosting under `/apps/figmabridge/` is an acceptance requirement, not yet validated.
+- Design principle: Design what matters, let AI propose what's missing, and approve what changes.
 
-## Outstanding issues
-- Specification is draft SCRAFT-1; track upstream changes and version compatibility.
-- Actual editable ScreenCraft round-trip and visual parity cannot yet be verified.
-- Asset extraction, design-token mapping and responsive auto-layout remain unimplemented.
-- Upload-side processing limit, production auth, CSRF, rate limiting and deployment hardening before public hosting.
+## Open risks
+- Validator is baseline structural validation, not yet full SCRAFT-1 conformance (assets, refs, JSON nesting caps and complete schema checks pending).
+- Current extraction uses placeholder graphics; actual editable preview and visual parity unverified.
+- Figma API token management, rate limiting, retry/backoff, optional plugin and server hardening pending.
+- ScreenCraft API and shared integration contract will be tested once available.

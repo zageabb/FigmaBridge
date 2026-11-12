@@ -60,3 +60,10 @@ Read the latest upstream source before every mapping change. Do not duplicate th
 - Added `tests/test_assets.py` covering packaged assets, missing exports, signature mismatches, undeclared entries and ZIP traversal.
 - **Not yet implemented:** automatic Figma asset download/export, full decoded image safety checks, full SCRAFT-1 conformance and visual parity checks.
 - **Verification:** code committed but pytest cannot run from this connector environment; GitHub Actions unavailable due to billing. PR is unverified and should receive independent tests before production deployment. No claim that acceptance is met.
+
+## 2026-11-12 Phase 3 responsive continuation (PR #4 candidate)
+- PR #3 merged into main via squash commit `84c1344`; GitHub Actions exemption remains active.
+- Added `responsive.py` to preserve Figma layout sizing and constraints, annotate viewport class and identify possible mobile/desktop/tablet frame groups without automatically merging screens or inventing breakpoints.
+- Added `tests/test_responsive.py` for integration regression (committed, not executed on the full checkout).
+- **Independent test evidence:** isolated local mirror of the new `annotate_responsive` module tested with `python -m pytest -q test_responsive_isolated.py`, CPython local environment, **2 passed in 0.07s**. This verifies two targeted behaviours of the copied module only; it does not verify the whole repository or its import pipeline.
+- Full repository pytest, CLI archive round-trip, image validation, ScreenCraft import and deployment smoke tests remain pending. These must not be marked passed on the basis of the isolated check.

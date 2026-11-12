@@ -43,7 +43,7 @@ def annotate_responsive(figma, application):
                 }
             if sizing:
                 node.setdefault("props", {})["figma_sizing"] = sizing
-                if sizing["horizontal"] == "FILL".lower():
+                if sizing.get("horizontal") == "fill":
                     node.setdefault("layout", {})["width"] = "fill"
                 if sizing.get("vertical") == "fill":
                     node.setdefault("layout", {})["height"] = "fill"

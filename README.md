@@ -19,6 +19,7 @@ Open http://127.0.0.1:5080/ and upload Figma REST JSON.
 
 ```bash
 figmabridge import-json exported-figma.json -o application.scraft
+figmabridge import-json exported-figma.json --assets-dir ./exported-images -o with-images.scraft
 figmabridge validate application.scraft
 export FIGMA_TOKEN="your-figma-personal-access-token"
 figmabridge import-figma YOUR_FIGMA_FILE_KEY -o application.scraft
@@ -37,3 +38,9 @@ Treat `FIGMA_TOKEN` as a secret; do not commit it, put it into `.scraft` or pass
 - The development web server is for local use only. Secure production deployment and prefixed routing need verification.
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for implementation phases, acceptance gates and blockers.
+
+## Local Figma raster exports
+
+Export individual raster image/vector nodes from Figma as PNG, JPG, WebP or GIF. Rename each export to its **Figma node ID**, replacing special characters with underscores (e.g. `12:34` → `12_34.png`), and place it in the folder given to `--assets-dir`. Image nodes whose files are found become packaged assets, referenced by nodes with `props.asset_path`. SHA-256 and MIME signatures are checked when the .scraft is read back. Missing exports remain reported as placeholders.
+
+This does not yet download assets automatically from Figma or establish pixel-perfect parity. Asset count/size is limited, and .scraft archives are data-only.

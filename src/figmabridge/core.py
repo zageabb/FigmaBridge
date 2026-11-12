@@ -9,6 +9,8 @@ from zipfile import ZipFile, ZIP_DEFLATED
 import json
 import re
 import uuid
+import hashlib
+from .assets import media_info
 from .themes import apply_theme
 
 MAX_BYTES = 25 * 1024 * 1024
@@ -200,12 +202,18 @@ def convert(figma, name=None):
     return manifest, application, warnings
 
 
-def pack(manifest, application):
-    """Produce a self-contained SCRAFT-1 ZIP file."""
+def pack(manifest, application, assets=None):
+    """Produce a validated SCRAFT-1 ZIP, optionally with packaged raster assets."""
+    assets = assets or {}
     data = BytesIO()
     with ZipFile(data, "w", ZIP_DEFLATED) as archive:
         archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
         archive.writestr("application.json", json.dumps(application, ensure_ascii=False, indent=2))
+        for path, data in sorted(assets.items()):
+            if not re.fullmatch(r"assets/[A-Za-z0-9_-]+\.(?:png|jpg|jpeg|webp|gif)", path):
+                raise ValueError("Unsafe asset path")
+            media_info(path, data)
+            archive.writestr(path, data)
     result = data.getvalue()
     validate(result)
     return result
@@ -224,12 +232,31 @@ def validate(payload):
         names = [item.filename for item in entries]
         if len(names) != len(set(names)):
             raise ValueError("Duplicate ZIP entries")
-        if set(names) != {"manifest.json", "application.json"}:
-            raise ValueError("Unsupported or missing ZIP entries")
+        if not {"manifest.json", "application.json"}.issubset(names):
+            raise ValueError("Missing required ZIP entries")
+        if any(not re.fullmatch(r"assets/[A-Za-z0-9_-]+\.(?:png|jpg|jpeg|webp|gif)", name)
+               for name in names if name not in ("manifest.json", "application.json")):
+            raise ValueError("Unsupported or unsafe ZIP entries")
+        if len(entries) > 1000 or sum(item.file_size for item in entries) > 100 * 1024 * 1024:
+            raise ValueError("Archive expansion limit exceeded")
         if any(item.file_size > MAX_BYTES or ((item.external_attr >> 16) & 0o170000) == 0o120000 for item in entries):
             raise ValueError("Unsafe ZIP entry")
         manifest = json.loads(archive.read("manifest.json"))
         app = json.loads(archive.read("application.json"))
+        declared = set()
+        for asset in app.get("assets", []):
+            path = asset.get("path")
+            if path in declared or path not in names:
+                raise ValueError("Missing or duplicate declared asset")
+            declared.add(path)
+            blob = archive.read(path)
+            mime = media_info(path, blob)
+            if asset.get("media_type") != mime:
+                raise ValueError("Asset media type mismatch")
+            if asset.get("sha256") and hashlib.sha256(blob).hexdigest() != asset["sha256"]:
+                raise ValueError("Asset checksum mismatch")
+        if set(names) - {"manifest.json", "application.json"} != declared:
+            raise ValueError("Undeclared asset entry")
     if manifest.get("format") != "screencraft" or manifest.get("entry") != "application.json":
         raise ValueError("Invalid manifest")
     version = manifest.get("format_version", "")

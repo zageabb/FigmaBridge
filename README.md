@@ -1,7 +1,39 @@
 # FigmaBridge
 
-Independent Python/Flask importer from Figma design JSON to ScreenCraft `.scraft` v1.
+Standalone Flask and Python CLI converting Figma design JSON into ScreenCraft `.scraft` ZIP documents.
 
-Canonical format: https://github.com/zageabb/Application-Standard/blob/main/standards/SCRAFT_FILE_FORMAT_v1.md
+**Canonical schema:** [Application-Standard SCRAFT-1](https://github.com/zageabb/Application-Standard/blob/main/standards/SCRAFT_FILE_FORMAT_v1.md). This repository deliberately links to rather than duplicates the shared standard.
 
-Development status and acceptance evidence are tracked in `DEVELOPMENT.md`.
+## Install and run
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e '.[dev]'
+flask --app figmabridge.webapp run --debug --port 5080
+```
+
+Open http://127.0.0.1:5080/ and upload Figma REST JSON.
+
+## CLI
+
+```bash
+figmabridge import-json exported-figma.json -o application.scraft
+figmabridge validate application.scraft
+export FIGMA_TOKEN="your-figma-personal-access-token"
+figmabridge import-figma YOUR_FIGMA_FILE_KEY -o application.scraft
+pytest -q
+```
+
+Treat `FIGMA_TOKEN` as a secret; do not commit it, put it into `.scraft` or pass it on the command line.
+
+## Current limitations
+
+- Only top-level frames within Figma pages become screens.
+- Text, structure, bounds, solid fills and inferred controls are converted.
+- Vector/image exports, live component instances/variants, responsive reconciliation, dark themes and prototype actions are not yet supported.
+- No claims of visual parity or ScreenCraft import compatibility until integration acceptance tests pass.
+- The optional API loader uses the Figma REST endpoint and cannot bypass Figma account permissions and rate limits.
+- The development web server is for local use only. Secure production deployment and prefixed routing need verification.
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for implementation phases, acceptance gates and blockers.

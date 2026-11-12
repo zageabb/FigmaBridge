@@ -20,7 +20,8 @@ p{line-height:1.6}.muted{color:#596579}.warning{color:#9a3412}</style></head><bo
 <form action="{{ url_for('import_json') }}" method="post" enctype="multipart/form-data">
 <label for="file">Figma JSON export</label><input required type="file" accept=".json,application/json" name="file" id="file">
 <label for="name">Application name (optional)</label><input name="name" id="name" maxlength="120">
-<p><button type="submit">Convert to .scraft</button></p>
+<p><button type="submit">Convert to .scraft</button>
+<button type="submit" formaction="{{ url_for('inspect_json') }}" formtarget="_blank" style="background:#475569">Inspect first</button></p>
 </form><p class="muted">Source: Application-Standard SCRAFT-1. No upload content is retained by this app.</p>
 </main></body></html>"""
 

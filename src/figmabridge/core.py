@@ -132,14 +132,23 @@ def convert(figma, name=None):
                 output = {"id": node_id, "type": kind, "parent_id": parent_id,
                           "props": props, "layout": _layout(node, parent), "style": style}
                 nodes.append(output)
-                for interaction in node.get("interactions", []):
-                    trigger = interaction.get("trigger", {})
-                    action = interaction.get("actions", [])
-                    for target in action:
-                        if target.get("type") == "NODE" and target.get("destinationId") and trigger.get("type") == "ON_CLICK":
-                            pending_navigation.append((output, target["destinationId"], node.get("id", "")))
+                # Figma REST exposes prototype links as reactions; some exports
+                # use interactions with an actions array. Handle both, safely.
+                reactions = list(node.get("reactions") or []) + list(node.get("interactions") or [])
+                for reaction in reactions:
+                    trigger = reaction.get("trigger") or {}
+                    actions = reaction.get("actions")
+                    if actions is None:
+                        actions = [reaction.get("action") or {}]
+                    for target in actions:
+                        if (target.get("type") == "NODE"
+                                and target.get("destinationId")
+                                and trigger.get("type") == "ON_CLICK"):
+                            pending_navigation.append(
+                                (output, target["destinationId"], node.get("id", "")))
                         else:
-                            warnings.append(f"{node.get('id')}: unsupported Figma interaction; review")
+                            warnings.append(
+                                f"{node.get('id')}: unsupported Figma interaction; review")
                 for child in node.get("children", []):
                     visit(child, node, node_id)
 

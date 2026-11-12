@@ -53,6 +53,17 @@ def _layout(node, parent):
         result["mode"] = "flex"
         result["direction"] = "row" if node["layoutMode"] == "HORIZONTAL" else "column"
         result["gap"] = node.get("itemSpacing", 0)
+        padding = {axis: node.get("padding" + suffix, 0)
+                   for axis, suffix in (("top", "Top"), ("right", "Right"),
+                                        ("bottom", "Bottom"), ("left", "Left"))}
+        result["padding"] = padding
+        if node.get("primaryAxisAlignItems"):
+            result["justify"] = node["primaryAxisAlignItems"].lower()
+        if node.get("counterAxisAlignItems"):
+            result["align"] = node["counterAxisAlignItems"].lower()
+    if node.get("clipsContent"):
+        result["overflow_x"] = "hidden"
+        result["overflow_y"] = "hidden"
     return result
 
 
@@ -79,6 +90,8 @@ def convert(figma, name=None):
     if not isinstance(root, dict):
         raise ValueError("Missing Figma document")
     screens, warnings, used_screens = [], [], set()
+    pending_navigation = []
+    frame_ids = {}
 
     for page in root.get("children", []):
         for frame in page.get("children", []):
@@ -87,6 +100,8 @@ def convert(figma, name=None):
             if len(screens) >= MAX_SCREENS:
                 raise ValueError("Too many screens")
             screen_id = unique(slug(frame.get("name", "screen")), used_screens)
+            if frame.get("id"):
+                frame_ids[frame["id"]] = screen_id
             used_nodes, nodes = set(), []
 
             def visit(node, parent, parent_id=None):
@@ -103,6 +118,10 @@ def convert(figma, name=None):
                     warnings.append(f"{node.get('id')}: inferred {kind} from layer name; review")
                 if kind == "image":
                     warnings.append(f"{node.get('id')}: graphics require asset export; image placeholder")
+                if node.get("componentId"):
+                    props["figma_component_id"] = node["componentId"]
+                if node.get("componentProperties"):
+                    props["figma_component_properties"] = node["componentProperties"]
                 style = {}
                 color = _color(node.get("fills"))
                 if color:
@@ -110,8 +129,17 @@ def convert(figma, name=None):
                 for k, v in (node.get("style") or {}).items():
                     if k in ("fontFamily", "fontSize", "fontWeight"):
                         style[{"fontFamily": "font_family", "fontSize": "font_size", "fontWeight": "font_weight"}[k]] = v
-                nodes.append({"id": node_id, "type": kind, "parent_id": parent_id,
-                              "props": props, "layout": _layout(node, parent), "style": style})
+                output = {"id": node_id, "type": kind, "parent_id": parent_id,
+                          "props": props, "layout": _layout(node, parent), "style": style}
+                nodes.append(output)
+                for interaction in node.get("interactions", []):
+                    trigger = interaction.get("trigger", {})
+                    action = interaction.get("actions", [])
+                    for target in action:
+                        if target.get("type") == "NODE" and target.get("destinationId") and trigger.get("type") == "ON_CLICK":
+                            pending_navigation.append((output, target["destinationId"], node.get("id", "")))
+                        else:
+                            warnings.append(f"{node.get('id')}: unsupported Figma interaction; review")
                 for child in node.get("children", []):
                     visit(child, node, node_id)
 
@@ -127,6 +155,11 @@ def convert(figma, name=None):
                                        "page_id": page.get("id", "")}})
     if not screens:
         raise ValueError("No Figma frames found under document pages")
+    for node, destination, source_id in pending_navigation:
+        if destination in frame_ids and node["type"] == "button":
+            node["action"] = {"type": "navigate", "target_screen": frame_ids[destination]}
+        else:
+            warnings.append(f"{source_id}: navigation not mapped (target or control unsupported)")
     title = name or figma.get("name") or "Imported Figma Design"
     timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     manifest = {"format": "screencraft", "format_version": "1.0.0",

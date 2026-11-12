@@ -51,12 +51,6 @@ def apply_theme(figma, app):
         if isinstance(value, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", value):
             register(definition.get("name") or style_id, value.upper())
 
-    def visit(node):
-        if not isinstance(node, dict):
-            return
-        for screen in app.get("screens", []):
-            pass
-
     # The Figma API provides the full node tree. Index original node IDs so
     # colour token assignment remains deterministic across imports.
     indexed = {}
